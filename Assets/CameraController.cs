@@ -5,53 +5,46 @@ using System.Linq;
 using WebSocketSharp;
 using WebSocketSharp.Net;
 
+//Ref http://qiita.com/oishihiroaki/items/bb2977c72052f5dd5bd9
+
 public class CameraController : MonoBehaviour {
     private float _cameraMotionRadius;
     private GUIStyle _labelStyle;
     private GameObject _parent;
 
-	public string _wsAddress = "ws://127.0.0.1:3000";
+    private float RAD2DEG = (float)(180.0 / System.Math.PI);
+    private float DEG2RAD = (float)(System.Math.PI / 180.0);
+    private float _pitch=0f;
+	private float _yaw=0f;
+    
+	public string _wsAddress = "ws://0.0.0.0:3000";
 	WebSocket _ws;
 	string _testMsg;
 
     // Use this for initialization
     void Start (){
-        this._parent = this.transform.root.gameObject;
+        _parent = this.transform.root.gameObject;
 
-        this._cameraMotionRadius = System.Math.Abs(this.transform.position.z);
-        this._labelStyle = new GUIStyle();
-        this._labelStyle.fontSize = Screen.height / 22;
-        this._labelStyle.normal.textColor = Color.white;
+        _cameraMotionRadius = System.Math.Abs(this.transform.position.z);
+        _labelStyle = new GUIStyle();
+        _labelStyle.fontSize = Screen.height / 22;
+        _labelStyle.normal.textColor = Color.white;
 
-		this._testMsg = "aaa";
+		_testMsg = "aaa";
 		Connect ();
     }
-
-    float updatePitch() {
-        return 10.0f;
-    }
-
-    float updateYaw()
-    {
-        return 10.0f;
-    }
-
 
 
     // Update is called once per frame
     void Update () {
-        float pitch = updatePitch();
-        float yaw = updateYaw();
-
-        Vector3 localPos = new Vector3(this._cameraMotionRadius * (float)System.Math.Cos(pitch) * (float)System.Math.Cos(yaw),
-                                        this._cameraMotionRadius * (float)System.Math.Sin(pitch),
-                                        this._cameraMotionRadius * (float)System.Math.Cos(pitch) * (float)System.Math.Sin(yaw));
+        Vector3 localPos = new Vector3(this._cameraMotionRadius * (float)System.Math.Cos(_pitch) * (float)System.Math.Cos(_yaw),
+                                        this._cameraMotionRadius * (float)System.Math.Sin(_pitch),
+                                        this._cameraMotionRadius * (float)System.Math.Cos(_pitch) * (float)System.Math.Sin(_yaw));
 
         this.transform.position = new Vector3(this._parent.transform.position.x + localPos.x,
                                                this._parent.transform.position.y + localPos.y,
                                                this._parent.transform.position.z + localPos.z);
         this.transform.LookAt(this._parent.transform.position);
-		Send("AAA");
     }
 
 	void Connect () {	
@@ -62,7 +55,11 @@ public class CameraController : MonoBehaviour {
 		};
 		
 		_ws.OnMessage += (sender, e) => {
-			_testMsg = e.Data;
+            JSONObject json = new JSONObject(e.Data);
+            _pitch = (float)json.GetField("pitch").n*DEG2RAD;
+            _yaw = (float)json.GetField("yaw").n * DEG2RAD;
+            _testMsg = string.Format("{0}", json.GetField("pitch").n);
+            //_testMsg = e.Data;
 			Debug.Log ("WebSocket Message Type: " + e.Type + ", Data: " + e.Data);
 		};
 		
@@ -102,7 +99,7 @@ public class CameraController : MonoBehaviour {
         //			text += "\n";
         //		} 
 
-        GUI.Label(new Rect(x, y, w, h), _testMsg, this._labelStyle);
+        //GUI.Label(new Rect(x, y, w, h), _testMsg, this._labelStyle);
 
     }
 }
